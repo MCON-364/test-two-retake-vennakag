@@ -3,8 +3,12 @@ package edu.touro.las.mcon364.test2;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 /**
  * Problem 2 of 3
@@ -39,17 +43,17 @@ import java.util.concurrent.locks.Lock;
  * TODO 6 — getResults() / getCompletedCount()
  *   Reads must be guarded the same way writes are.
  *   getResults() must return a copy so callers cannot modify internal state.
- *   
+ *
  */
 public class TaskDispatcher {
 
     public static final int POOL_SIZE = 4;
 
     // TODO 1: replace null with an appropriate class
-    private final ExecutorService pool = null;
+    private final ExecutorService pool = Executors.newFixedThreadPool(POOL_SIZE);
 
     // TODO 2: replace null — which Lock implementation lets you lock and unlock explicitly?
-    private final Lock lock = null;
+    private final Lock lock = new ReentrantLock();
 
     // provided — do not change
     private final List<String> results = new ArrayList<>();
@@ -66,25 +70,52 @@ public class TaskDispatcher {
      */
     public List<Future<String>> dispatch(List<String> tasks) {
         // TODO 3
-        return null; //placeholder
+        return tasks.stream().map(task -> {
+            return pool.submit(() -> {
+                recordResult(task.toUpperCase());
+                return task.toUpperCase();
+            });
+        }).collect(Collectors.toList());
     }
 
     public void recordResult(String result) {
         //TODO 4
+        lock.lock();
+        try{
+            completedCount++;
+            results.add(result);
+        }finally {
+            lock.unlock();
+        }
     }
 
     public void shutdown() throws InterruptedException {
         //TODO 5
+        pool.shutdown();
+
+        if(!pool.awaitTermination(10, TimeUnit.SECONDS)){
+            pool.shutdownNow();
+        }
     }
 
     public List<String> getResults() {
         //TODO 6
-        return null; //placeholder
+        lock.lock();
+        try {
+            return results.stream().toList(); //placeholder
+        } finally {
+            lock.unlock();
+        }
     }
 
     public int getCompletedCount() {
         //TODO 6
-        return 0; //placeholder
+        lock.lock();
+        try {
+            return completedCount;//placeholder
+        }finally{
+            lock.unlock();
+        }
     }
 
 }
