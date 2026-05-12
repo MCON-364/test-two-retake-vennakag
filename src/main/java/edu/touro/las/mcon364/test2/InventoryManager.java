@@ -116,7 +116,7 @@ public class InventoryManager {
             }
             return value;
         });
-        return false; //placeholder
+        return removed[0]; //placeholder
     }
 
     /**
